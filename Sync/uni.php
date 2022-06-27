@@ -56,10 +56,9 @@ foreach (new RecursiveIteratorIterator($di) as $filename => $file) {
 
 logger("uniLog.txt", $fileArr, 'w', true);
 
-$js_array = json_encode($fileArr);
+//$js_array = json_encode($fileArr);
 $js_aspect = json_encode($fileAspectArr);
-?>
-<?php
+
 $servername = "localhost";
 $username = "ntpadministrator";
 $password = "N3xu5!!!";
@@ -73,40 +72,18 @@ if ($conn->connect_error) {
 }
 //echo "Connected successfully";
 mysqli_select_db($conn,"upilio");
-$sql="select * from DeviceAndStatus";
+$sql='select * from DeviceAndStatus where Device like \'%'.$device.'%\'';
+logger("sqllog.txt", $sql, 'w', true);
 $result = mysqli_query($conn,$sql);
 $data = array();
-while($sqlrow = mysqli_fetch_array($result)) {
+while($sqlrow = mysqli_fetch_array($result, $mode=MYSQLI_ASSOC)) {
 	$data[] = $sqlrow;
-	//echo "" . $sqlrow['Device'] . "    " . $sqlrow['Status'] . "<br>";
-	//echo "" . $sqlrow['Status'] . "<br>";
 }
+$js_array = json_encode($data);
 
-// Consolidate data into multi-dimensional array
-// e.g. (0, ("Path/To/Device", "Status"))
-$dataConsolidated = array();
-foreach ($data as $row) {
-	$currentRow = array();
-	array_push($currentRow, $row['Device']);
-	array_push($currentRow, $row['Status']);
-	array_push($dataConsolidated, $currentRow);
-}
-/*
-logger("dataConsolidated.txt", $dataConsolidated, 'w', true);
-echo "test";
-foreach ($dataConsolidated as $key => $value) {
-    foreach ($value as $k => $v) {
-        echo "<tr>";
-		logger("keyVal.txt", $k, 'a', false);
-		logger("keyVal.txt", $v, 'a', false);
-        echo "<td>$k</td>"; // Get index.
-        echo "<td>$v</td>"; // Get value.
-        echo "</tr>";
-    }
-}
-*/
+logger("data.txt", $data, 'w', true);
+
 ?>
-
 
 <html>
 <head>
@@ -182,7 +159,7 @@ var fileArr = <?php echo $js_array;?>;
 //Get array length for looping
 var fileArrLength = fileArr.length;
 //Array of string replacements for getting file name
-var replaceArr = [device,".jpg",".JPG",".png",".PNG",".xml"];
+var replaceArr = [device,".jpg",".JPG",".png",".PNG",".xml",".XML","Upilio/"];
 var fileName = "";
 //Store amount of rows calculated during loop for recalling
 var rowCounter = 1;
@@ -206,18 +183,24 @@ for (var i = 0; i < fileArrLength; i++) {
 		fileName = 'icon.jpg';
 	}
 	else{
-		fileName = fileArr[i];
+		fileName = fileArr[i]["Device"];
 	}
-	console.log(fileName);
+
 	for(var x = 0; x < replaceArr.length; x++){
 		fileName = fileName.replace(replaceArr[x], "");
 	}
+
+	fileName = fileName.substring(1);
+
 	if(device == 'Cameras'){
+		fileArr[i]["Device"] = fileName;
 		fileName = fileName.replace('/', '<br/>');
 	}
 	else{
+		fileArr[i]["Device"] = fileName;
 		fileName = fileName.split("/").pop();
 	}
+
 //	if(device != 'Cameras'){
 //		clientName = fileName.split("/")[0];
 //	        fileName = fileName.split("/").pop();
@@ -225,8 +208,10 @@ for (var i = 0; i < fileArrLength; i++) {
 //	else{
 //		fileName = fileName.split("/").pop();
 //	}
+
 	//Calculate width of screen used
 	widthUsed = widthUsed + ((tilePaddingLR * 2) + (imgW) + (imgPadding * 2) + (borderW * 2));
+
 	//Check if width used for tiles has exceeded the available screen width and create a new row if so
 	if(widthUsed > w){
 		rowCounter++;
@@ -239,7 +224,9 @@ for (var i = 0; i < fileArrLength; i++) {
 	else{
 	html += "<div id='tile' style='height:"+tileH+"px;padding-left:"+tilePaddingLR+";padding-right:"+tilePaddingLR+";'>";
 	html += buffer;
-	html += "<img src='"+device+"/"+fileArr[i]+"' id='file"+k+"' style='height:"+imgH+";width:"+imgW+";padding:"+imgPadding+";border:"+borderW+"px solid green;border-radius:"+borderRadius+"px;'/>";
+
+	html += "<img src=\""+device+"/"+fileArr[i]["Device"]+".png\" id='file"+k+"' style='height:"+imgH+";width:"+imgW+";padding:"+imgPadding+";border:"+borderW+"px solid green;border-radius:"+borderRadius+"px;'/>";
+	//html += "<img src=\'"+device+"/"+deviceName[0]+"/"+deviceName[1]+".png\' id='file"+k+"' style='height:"+imgH+";width:"+imgW+";padding:"+imgPadding+";border:"+borderW+"px solid green;border-radius:"+borderRadius+"px;'/>";
 	html += "<div id='nameplate"+k+"' style='height:"+nameplateH+";'>"+fileName+"</div>";
 	html += buffer;
 	html += "</div>";
